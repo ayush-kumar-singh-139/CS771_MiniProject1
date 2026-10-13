@@ -1,0 +1,3 @@
+method,mean daily map RMSE,mean daily station RMSE,pooled station RMSE,mean pattern correlation,median pattern correlation
+Persistence,15.369,28.568,32.745,0.58,0.624
+Our model,14.172,24.877,28.555,0.618,0.656

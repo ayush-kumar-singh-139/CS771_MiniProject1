@@ -1,0 +1,22 @@
+experiment,model,features,n_train_rows,train_RMSE,val_RMSE,val_MAE,note
+E0 persistence,persistence,reading at issue time,,,32.75,17.47,
+E1 ridge baseline (Part 1),"Ridge a=1, raw",29 baseline,113256.0,28.0,29.58,18.16,
+"E2 ridge baseline feats, scaled",Scaler+Ridge a=1,29 baseline,113256.0,28.0,29.58,18.16,
+E3 ridge rich feats,Scaler+Ridge a=1,8 groups (63),110448.0,26.29,29.41,17.88,
+"E4 ridge rich, residual, a=3000",Scaler+Ridge a=3000,8 groups (63),110448.0,26.53,29.3,17.59,alpha from the path
+"E5 lasso, residual",Lasso a=0.1,8 groups (63),110448.0,26.39,29.27,17.58,27 of 63 weights set to 0
+"E6 Huber loss, residual",HuberRegressor eps=1.35,8 groups (63),110448.0,26.75,29.66,16.64,
+E7 log-log ridge (smearing),Scaler+Ridge on log1p,"8 groups (63), logged",110448.0,26.87,30.13,16.69,
+"E8 KNN k=50, distance-weighted",KNN k=50,"8 groups (63), scaled",110448.0,,31.15,17.81,
+"E8 KNN k=200, distance-weighted",KNN k=200,"8 groups (63), scaled",110448.0,,30.69,17.13,
+E9 RBF random features + ridge,"RBFSampler(500, g=0.005)+Ridge",8 groups (63),110448.0,25.26,31.26,19.08,
+"E10 gradient boosting, plain target","HGB lr=.05, 300 it",8 groups (63),110448.0,17.09,34.9,19.65,
+"E11 gradient boosting, residual","HGB lr=.05, 300 it",8 groups (63),110448.0,17.33,31.93,18.34,
+"E12 gradient boosting, residual, shallow","HGB depth 3, leaf 500",8 groups (63),110448.0,23.99,30.99,17.14,
+"E13 random forest, residual","RF 200 trees, leaf 50",8 groups (63),110448.0,20.68,29.94,16.9,
+"E14 ridge, recent24 -> 5 PCA comps",Scaler+Ridge a=3000,PCA(5) + 7 groups,110448.0,26.75,29.41,17.6,
+E15 ridge + K-means cluster means,Scaler+Ridge a=3000,8 groups + 2 cluster,110448.0,26.52,29.27,17.55,
+"E16 ridge, issue hours 11-13",Scaler+Ridge a=3000,8 groups (63),330876.0,26.82,29.33,17.68,
+"E17 candidate: avg(ridge, extra trees)",Ridge a=1 + ET leaf 50,8 groups (63),110448.0,23.93,28.56,16.42,hyperparameters chosen on validation
+"E18 extra trees alone, residual",ET leaf 50,8 groups (63),110448.0,22.72,29.05,16.23,
+"E19 FINAL: avg(ridge, extra trees), 7 groups",Ridge a=1 + ET leaf 50,7 groups (57),110448.0,23.93,28.55,16.35,groups chosen by ablation

@@ -1,0 +1,9 @@
+Running D:\Home\SEM 5\CS771A\Mini Project-1\MP1\submission\forecast.py on 30 November issue times ...
+
+Call time: median 0.06 s, max 0.15 s
+
+November sanity check over 30 forecasts (NOT a test score):
+  your forecast  RMSE  38.61  MAE  26.23
+  persistence    RMSE  47.81  MAE  31.70
+
+RESULT: OK - format and timing look right.

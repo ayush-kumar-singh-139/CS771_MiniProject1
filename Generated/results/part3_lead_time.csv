@@ -1,0 +1,8 @@
+,,RMSE,RMSE,RMSE,MAE,MAE,MAE
+method,,Our model,Persistence,Ridge baseline,Our model,Persistence,Ridge baseline
+lead_h,issue time,,,,,,
+1,11:00 (day d+1),18.86,23.95,18.95,7.95,10.36,8.67
+3,09:00 (day d+1),27.94,51.43,28.51,14.57,28.28,16.7
+6,06:00 (day d+1),31.93,66.82,34.06,18.58,41.28,23.16
+12,00:00 (day d+1),31.04,72.74,31.97,18.28,46.74,21.31
+24,12:00 (day d),28.55,32.75,29.58,16.35,17.47,18.16
