@@ -8,7 +8,7 @@ import pandas as pd
 
 # ---- paths -------------------------------------------------------------------------------
 MP1_DIR = Path(__file__).resolve().parent.parent          # .../Mini Project-1/MP1
-PACKAGE_DIR = MP1_DIR.parent / "mp1-package"              # course package (data + starter kit)
+PACKAGE_DIR = MP1_DIR.parent / "Task"             # course package (data + starter kit)
 DATA_DIR = PACKAGE_DIR / "data"
 FIG_DIR = MP1_DIR / "figures"
 SUBMISSION_DIR = MP1_DIR / "submission"
