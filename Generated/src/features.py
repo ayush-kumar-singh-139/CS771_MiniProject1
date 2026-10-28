@@ -187,13 +187,40 @@ def _group_daily_hist_simple(csum, issue_pos):
     # Return the final 3D matrix and the list of column names
     return final_3d_matrix, names
 
-def _group_same_hour(V, issue_pos, lead):
-    # the station's reading at the TARGET hour of day on the 7 previous days. Target = issue + lead,
-    # so "k days before the target" is lag 24k - lead from the issue time (>= 0 because lead <= 24).
-    # Lead 24 -> lags 0, 24, ..., 144;  lead 1 -> lags 23, 47, ..., 167.
-    lags = np.array([24 * k - lead for k in range(1, 8)])
-    blk = _lag_block(V, issue_pos, lags)                     # (n, 7, S)
-    return np.transpose(blk, (0, 2, 1)), [f"targethour_{k}d_ago" for k in range(1, 8)]
+def _group_same_hour_simple(V, issue_pos, lead):
+    
+    # List to collect our calculated lags (hours looking backward from issue time)
+    lags_list = []
+    
+    # Loop for the past 7 days (k goes from 1 to 7)
+    for k in range(1, 8):
+        # STEP 1: Calculate the exact lag for the target hour
+        # Target time is (issue_time + lead). 
+        # We want data from (Target time - 24*k hours).
+        # Relative to issue_time, the formula becomes: (24 * k) - lead
+        exact_lag = (24 * k) - lead
+        lags_list.append(exact_lag)
+        
+    # Convert the python list to a numpy array so it works with other functions
+    lags_array = np.array(lags_list)
+    
+    # STEP 2: Fetch the PM2.5 data for these exact lags using our helper function
+    # This returns a 3D block of shape: (Issue Times, 7 Lags, Stations)
+    data_block = _lag_block(V, issue_pos, lags_array)
+    
+    # STEP 3: Rearrange the shape (Transpose / Swapaxes)
+    # We need Stations in the middle and our 7 Lags at the end.
+    # New shape will be: (Issue Times, Stations, 7 Lags)
+    arranged_data = np.swapaxes(data_block, 1, 2)
+    
+    # STEP 4: Create column names for the 7 features
+    names = []
+    for k in range(1, 8):
+        column_name = "targethour_" + str(k) + "d_ago"
+        names.append(column_name)
+        
+    # Return the formatted data and the column names
+    return arranged_data, names
 
 
 def _group_trend(lag24, csum, issue_pos):
