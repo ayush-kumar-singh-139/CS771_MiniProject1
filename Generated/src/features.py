@@ -153,11 +153,39 @@ def _group_recent24(lag24):
     return np.transpose(lag24, (0, 2, 1)), [f"lag_{k}h" for k in range(24)]
 
 
-def _group_daily_hist(csum, issue_pos):
-    # station's daily mean for the 24 h windows ending 1..6 days before the issue time (days 2-7 back)
-    blocks = [_window_mean(csum, issue_pos, 24 * k, 24) for k in range(1, 7)]
-    return np.stack(blocks, axis=2), [f"daymean_{k + 1}d_ago" for k in range(1, 7)]
-
+def _group_daily_hist_simple(csum, issue_pos):
+    
+    # Lists to collect our calculated averages and their column names
+    blocks = []
+    names = []
+    
+    # Loop for the past 6 days (k goes from 1 to 6)
+    for k in range(1, 7):
+        
+        # STEP 1: Calculate where the window ends (end_lag)
+        # If k=1, end_lag = 24 hours ago (yesterday)
+        # If k=2, end_lag = 48 hours ago (day before yesterday), etc.
+        end_lag = 24 * k 
+        
+        # STEP 2: Calculate the mean of that 24-hour window
+        # length is always 24 because we want a full daily average
+        daily_average = _window_mean(csum, issue_pos, end_lag, length=24)
+        
+        # STEP 3: Store the calculated average in our list
+        blocks.append(daily_average)
+        
+        # STEP 4: Create the column name for this feature
+        # If k=1, k+1 = 2 (meaning 2 days ago)
+        column_name = "daymean_" + str(k + 1) + "d_ago"
+        names.append(column_name)
+        
+    # STEP 5: Stack all the blocks together
+    # Currently, 'blocks' contains 6 separate 2D tables (one for each day).
+    # np.stack joins them along the 3rd dimension (axis=2) to make a 3D matrix.
+    final_3d_matrix = np.stack(blocks, axis=2)
+    
+    # Return the final 3D matrix and the list of column names
+    return final_3d_matrix, names
 
 def _group_same_hour(V, issue_pos, lead):
     # the station's reading at the TARGET hour of day on the 7 previous days. Target = issue + lead,
