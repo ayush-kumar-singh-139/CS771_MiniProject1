@@ -222,59 +222,6 @@ def _group_same_hour(V, issue_pos, lead):
     # Return the formatted data and the column names
     return arranged_data, names
 
-
-def _group_trend(lag24, csum, issue_pos):
-    
-    # List to store all 6 calculated features
-    all_features = []
-    
-    # 1. Averages (Today vs Yesterday)
-    # Average of the last 24 hours (Today)
-    mean_today = np.mean(lag24, axis=1) 
-    # Average of the 24 hours before that (Yesterday)
-    mean_yday = _window_mean(csum, issue_pos, 24, 24)
-    
-    # Feature 1: Difference between today's average and yesterday's average
-    all_features.append(mean_today - mean_yday)
-    
-    # Feature 2: Short-term change (Current hour minus 3 hours ago)
-    all_features.append(lag24[:, 0, :] - lag24[:, 3, :])
-    
-    # 2. Linear Trend (Slope using Least Squares Regression)
-    # Centered time axis (X-axis) from oldest (-11.5) to newest (+11.5)
-    t = np.array([11.5, 10.5, 9.5, 8.5, 7.5, 6.5, 5.5, 4.5, 3.5, 2.5, 1.5, 0.5, 
-                 -0.5, -1.5, -2.5, -3.5, -4.5, -5.5, -6.5, -7.5, -8.5, -9.5, -10.5, -11.5])
-    
-    # Denominator for the slope formula: Sum of (X^2)
-    sum_t_squared = np.sum(t ** 2)
-    
-    # Numerator: Sum of (Y * X). We use broadcasting to multiply PM2.5 with time 't'
-    sum_y_times_t = np.sum(lag24 * t[None, :, None], axis=1)
-    
-    # Feature 3: Calculate the final slope (m = Sum(XY) / Sum(X^2))
-    slope_24h = sum_y_times_t / sum_t_squared
-    all_features.append(slope_24h)
-    
-    # 3. Volatility and Extremes
-    # Feature 4: Standard deviation (how much PM2.5 fluctuated in 24 hours)
-    all_features.append(np.std(lag24, axis=1))
-    
-    # Feature 5: Minimum PM2.5 value in the last 24 hours
-    all_features.append(np.min(lag24, axis=1))
-    
-    # Feature 6: Maximum PM2.5 value in the last 24 hours
-    all_features.append(np.max(lag24, axis=1))
-    
-    # Stack all 6 features together into a 3D matrix (Issue Times, Stations, 6 Features)
-    final_3d_matrix = np.stack(all_features, axis=2)
-    
-    # Define column names for these exactly in the same order
-    names = ["today_minus_yday", "change_3h", "slope_24h", "std_24h", "min_24h", "max_24h"]
-    
-    # Return the formatted data block and the column names
-    return final_3d_matrix, names
-
-
 def _group_neighbourhood(now, mean24, ctx):
     feats, names = [], []
     nbr = ctx["nbr_idx"]
