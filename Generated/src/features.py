@@ -153,7 +153,7 @@ def _group_recent24(lag24):
     return np.transpose(lag24, (0, 2, 1)), [f"lag_{k}h" for k in range(24)]
 
 
-def _group_daily_hist_simple(csum, issue_pos):
+def _group_daily_hist(csum, issue_pos):
     
     # Lists to collect our calculated averages and their column names
     blocks = []
@@ -187,7 +187,7 @@ def _group_daily_hist_simple(csum, issue_pos):
     # Return the final 3D matrix and the list of column names
     return final_3d_matrix, names
 
-def _group_same_hour_simple(V, issue_pos, lead):
+def _group_same_hour(V, issue_pos, lead):
     
     # List to collect our calculated lags (hours looking backward from issue time)
     lags_list = []
