@@ -1,6 +1,6 @@
-Running D:\Home\SEM 5\CS771A\Mini Project-1\MP1\submission\forecast.py on 30 November issue times ...
+Running /home/ayush-kumar-singh/Desktop/mp1-package/Generated/submission/forecast.py on 30 November issue times ...
 
-Call time: median 0.06 s, max 0.15 s
+Call time: median 0.03 s, max 0.22 s
 
 November sanity check over 30 forecasts (NOT a test score):
   your forecast  RMSE  38.61  MAE  26.23

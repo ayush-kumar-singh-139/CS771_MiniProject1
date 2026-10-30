@@ -20,7 +20,7 @@ HERE = Path(__file__).resolve().parent
 # ---- load fitted objects ONCE, at import time ----------------------------------------------
 BUNDLE = joblib.load(HERE / "model.pkl")
 MODELS = BUNDLE["models"]
-for _m in MODELS:                      # predicting 468 rows: no need for worker processes
+for _m in MODELS:                 # predicting 468 rows: no need for worker processes
     if hasattr(_m, "n_jobs"):
         _m.n_jobs = 1
 CTX = BUNDLE["ctx"]

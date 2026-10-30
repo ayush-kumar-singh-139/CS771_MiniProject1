@@ -154,36 +154,73 @@ def _group_recent24(lag24):
 
 
 def _group_daily_hist(csum, issue_pos):
-    # station's daily mean for the 24 h windows ending 1..6 days before the issue time (days 2-7 back)
-    blocks = [_window_mean(csum, issue_pos, 24 * k, 24) for k in range(1, 7)]
-    return np.stack(blocks, axis=2), [f"daymean_{k + 1}d_ago" for k in range(1, 7)]
-
+    
+    # Lists to collect our calculated averages and their column names
+    blocks = []
+    names = []
+    
+    # Loop for the past 6 days (k goes from 1 to 6)
+    for k in range(1, 7):
+        
+        # STEP 1: Calculate where the window ends (end_lag)
+        # If k=1, end_lag = 24 hours ago (yesterday)
+        # If k=2, end_lag = 48 hours ago (day before yesterday), etc.
+        end_lag = 24 * k 
+        
+        # STEP 2: Calculate the mean of that 24-hour window
+        # length is always 24 because we want a full daily average
+        daily_average = _window_mean(csum, issue_pos, end_lag, length=24)
+        
+        # STEP 3: Store the calculated average in our list
+        blocks.append(daily_average)
+        
+        # STEP 4: Create the column name for this feature
+        # If k=1, k+1 = 2 (meaning 2 days ago)
+        column_name = "daymean_" + str(k + 1) + "d_ago"
+        names.append(column_name)
+        
+    # STEP 5: Stack all the blocks together
+    # Currently, 'blocks' contains 6 separate 2D tables (one for each day).
+    # np.stack joins them along the 3rd dimension (axis=2) to make a 3D matrix.
+    final_3d_matrix = np.stack(blocks, axis=2)
+    
+    # Return the final 3D matrix and the list of column names
+    return final_3d_matrix, names
 
 def _group_same_hour(V, issue_pos, lead):
-    # the station's reading at the TARGET hour of day on the 7 previous days. Target = issue + lead,
-    # so "k days before the target" is lag 24k - lead from the issue time (>= 0 because lead <= 24).
-    # Lead 24 -> lags 0, 24, ..., 144;  lead 1 -> lags 23, 47, ..., 167.
-    lags = np.array([24 * k - lead for k in range(1, 8)])
-    blk = _lag_block(V, issue_pos, lags)                     # (n, 7, S)
-    return np.transpose(blk, (0, 2, 1)), [f"targethour_{k}d_ago" for k in range(1, 8)]
-
-
-def _group_trend(lag24, csum, issue_pos):
-    mean_today = lag24.mean(axis=1)
-    mean_yday = _window_mean(csum, issue_pos, 24, 24)
-    t = np.arange(24)[::-1] - 11.5                           # time axis, oldest -> newest
-    slope = (lag24 * t[None, :, None]).sum(axis=1) / (t ** 2).sum()    # least-squares slope (ug/m3 per h)
-    feats = [
-        mean_today - mean_yday,                              # today minus yesterday
-        lag24[:, 0, :] - lag24[:, 3, :],                     # change over the last 3 hours
-        slope,
-        lag24.std(axis=1),
-        lag24.min(axis=1),
-        lag24.max(axis=1),
-    ]
-    names = ["today_minus_yday", "change_3h", "slope_24h", "std_24h", "min_24h", "max_24h"]
-    return np.stack(feats, axis=2), names
-
+    
+    # List to collect our calculated lags (hours looking backward from issue time)
+    lags_list = []
+    
+    # Loop for the past 7 days (k goes from 1 to 7)
+    for k in range(1, 8):
+        # STEP 1: Calculate the exact lag for the target hour
+        # Target time is (issue_time + lead). 
+        # We want data from (Target time - 24*k hours).
+        # Relative to issue_time, the formula becomes: (24 * k) - lead
+        exact_lag = (24 * k) - lead
+        lags_list.append(exact_lag)
+        
+    # Convert the python list to a numpy array so it works with other functions
+    lags_array = np.array(lags_list)
+    
+    # STEP 2: Fetch the PM2.5 data for these exact lags using our helper function
+    # This returns a 3D block of shape: (Issue Times, 7 Lags, Stations)
+    data_block = _lag_block(V, issue_pos, lags_array)
+    
+    # STEP 3: Rearrange the shape (Transpose / Swapaxes)
+    # We need Stations in the middle and our 7 Lags at the end.
+    # New shape will be: (Issue Times, Stations, 7 Lags)
+    arranged_data = np.swapaxes(data_block, 1, 2)
+    
+    # STEP 4: Create column names for the 7 features
+    names = []
+    for k in range(1, 8):
+        column_name = "targethour_" + str(k) + "d_ago"
+        names.append(column_name)
+        
+    # Return the formatted data and the column names
+    return arranged_data, names
 
 def _group_neighbourhood(now, mean24, ctx):
     feats, names = [], []
@@ -196,7 +233,58 @@ def _group_neighbourhood(now, mean24, ctx):
         names += [f"r{int(r)}km_now", f"r{int(r)}km_mean24h"]
     return np.stack(feats, axis=2), names
 
-
+def _group_trend(lag24, csum, issue_pos):
+    
+    # We will store our 6 calculated features in this list
+    all_features = []
+    
+    # FEATURE 1 & 2: Averages (Today vs Yesterday)
+    # Average of the last 24 hours (Today)
+    mean_today = np.mean(lag24, axis=1) 
+    # Average of the 24 hours before that (Yesterday)
+    mean_yday = _window_mean(csum, issue_pos, end_lag=24, length=24)
+    
+    # Feature 1: How much did the average change compared to yesterday?
+    day_over_day_change = mean_today - mean_yday
+    all_features.append(day_over_day_change)
+    
+    # Feature 2: Short-term change (Right now vs 3 hours ago)
+    # lag 0 is 'now', lag 3 is '3 hours ago'
+    change_3h = lag24[:, 0, :] - lag24[:, 3, :]
+    all_features.append(change_3h)
+    
+    # FEATURE 3: The Linear Trend (Slope)
+    # Create a centered time axis (X-axis) from oldest (-11.5) to newest (+11.5)
+    t = np.array([11.5, 10.5, 9.5, 8.5, 7.5, 6.5, 5.5, 4.5, 3.5, 2.5, 1.5, 0.5, 
+                 -0.5, -1.5, -2.5, -3.5, -4.5, -5.5, -6.5, -7.5, -8.5, -9.5, -10.5, -11.5])
+    
+    # Calculate the Least Squares Slope (Y = mX + C, we are finding 'm')
+    # Formula: Sum of (Y * X) / Sum of (X^2)
+    sum_t_squared = np.sum(t ** 2)
+    
+    # Multiply each hour's pollution by its corresponding time 't', then sum them up
+    # (Using a small numpy trick here just to avoid a massive 3-page for-loop)
+    sum_y_times_t = np.sum(lag24 * t[None, :, None], axis=1)
+    
+    slope_24h = sum_y_times_t / sum_t_squared
+    all_features.append(slope_24h)
+    
+    # FEATURES 4, 5, 6: Volatility and Extremes
+    std_24h = np.std(lag24, axis=1)  # How much did pollution fluctuate?
+    min_24h = np.min(lag24, axis=1)  # Lowest pollution in 24h
+    max_24h = np.max(lag24, axis=1)  # Highest pollution in 24h
+    
+    all_features.append(std_24h)
+    all_features.append(min_24h)
+    all_features.append(max_24h)
+    
+    # Stack all 6 features together into a 3D matrix (Issue Times, Stations, 6 Features)
+    final_3d_matrix = np.stack(all_features, axis=2)
+    
+    # Column names for these 6 features
+    names = ["today_minus_yday", "change_3h", "slope_24h", "std_24h", "min_24h", "max_24h"]
+    
+    return final_3d_matrix, names
 def _group_network(now, mean24, csum, issue_pos, S):
     net_now = now.mean(axis=1)
     net_24 = mean24.mean(axis=1)
